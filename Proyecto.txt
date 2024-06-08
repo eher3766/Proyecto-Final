@@ -8,7 +8,7 @@ section .data
     error_msg db "Entrada invalida!", 0xA
     len_error_msg equ $ - error_msg
     newline db 0xA, 0
-
+    ten dd 10
 section .bss
     cantidad resb 3
     num resb 5
@@ -152,6 +152,3 @@ itoa_loop:
     jnz itoa_loop
     inc ecx
     ret
-
-section .data
-    ten dd 10
