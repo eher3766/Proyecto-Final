@@ -1,0 +1,157 @@
+section .data 
+    mensaje db "La suma es: ", 0xA
+    len_mensaje equ $ - mensaje
+    mensaje_cantidad db "Ingrese la cantidad de numeros a sumar (max 2 digitos): ", 0xA
+    len_mensaje_cantidad equ $ - mensaje_cantidad
+    mensaje_num db "Ingrese el numero: ", 0xA
+    len_mensaje_num equ $ - mensaje_num
+    error_msg db "Entrada invalida!", 0xA
+    len_error_msg equ $ - error_msg
+    newline db 0xA, 0
+
+section .bss
+    cantidad resb 3
+    num resb 5
+    resultado resb 5
+
+section .text
+    global _start
+
+_start:
+    ; Solicitar la cantidad de numeros
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, mensaje_cantidad
+    mov edx, len_mensaje_cantidad
+    int 0x80
+
+    ; Leer la cantidad de numeros
+    mov eax, 3
+    mov ebx, 0
+    mov ecx, cantidad
+    mov edx, 3
+    int 0x80
+
+    ; Validar y convertir cantidad de ASCII a entero
+    mov eax, cantidad
+    call validate_and_atoi
+    test eax, eax
+    js error
+
+    ; Guardar la cantidad en edx
+    mov edx, eax
+
+    ; Inicializar suma en 0
+    xor eax, eax
+    xor ebx, ebx
+
+suma_loop:
+    ; Solicitar el numero
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, mensaje_num
+    mov edx, len_mensaje_num
+    int 0x80
+
+    ; Leer el numero
+    mov eax, 3
+    mov ebx, 0
+    mov ecx, num
+    mov edx, 5
+    int 0x80
+
+    ; Validar y convertir numero de ASCII a entero
+    mov eax, num
+    call validate_and_atoi
+    test eax, eax
+    js error
+
+    ; Sumar el numero
+    add ebx, eax
+
+    ; Decrementar contador de numeros
+    dec edx
+    jnz suma_loop
+
+    ; Convertir el resultado a ASCII
+    mov eax, ebx
+    call itoa
+
+    ; Imprimir el mensaje
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, mensaje
+    mov edx, len_mensaje
+    int 0x80
+
+    ; Imprimir el resultado
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, resultado
+    mov edx, 5
+    int 0x80
+
+    ; Finalizar el programa
+    mov eax, 1
+    mov ebx, 0
+    int 0x80
+
+error:
+    ; Imprimir mensaje de error
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, error_msg
+    mov edx, len_error_msg
+    int 0x80
+
+    ; Finalizar el programa con error
+    mov eax, 1
+    mov ebx, 1
+    int 0x80
+
+; Función para validar y convertir ASCII a entero
+validate_and_atoi:
+    xor ebx, ebx
+    xor edx, edx
+validate_loop:
+    movzx ecx, byte [eax + edx]
+    cmp ecx, 0xA  ; Nueva línea
+    je validate_done
+    cmp ecx, '0'
+    jb validate_error
+    cmp ecx, '9'
+    ja validate_error
+    sub ecx, '0'
+    imul ebx, ebx, 10
+    add ebx, ecx
+    inc edx
+    cmp edx, 3  ; Máximo 2 dígitos para cantidad
+    je validate_error
+    jmp validate_loop
+validate_done:
+    cmp ebx, 0
+    jle validate_error
+    mov eax, ebx
+    ret
+validate_error:
+    mov eax, -1
+    ret
+
+; Función para convertir entero a ASCII (itoa)
+itoa:
+    mov ecx, resultado + 4
+    mov byte [ecx], 0
+    dec ecx
+itoa_loop:
+    xor edx, edx
+    div dword [ten]
+    add dl, '0'
+    mov [ecx], dl
+    dec ecx
+    test eax, eax
+    jnz itoa_loop
+    inc ecx
+    ret
+
+section .data
+    ten dd 10
